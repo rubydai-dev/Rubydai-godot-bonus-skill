@@ -43,6 +43,9 @@ Templates (copy into the project, adapt names):
 - Text drawn by hand (`draw_string`) goes through a fit-to-width helper that leaves room for what sits beside it on the same line.
 - Number formatters guard `NAN`, `INF` and values past the largest unit before `int()`, which silently overflows to 9223372036854775807.
 
+**UI text**
+- Keep on-screen copy short: labels of a few words, hints and footers one short sentence, no explanations of how things work behind the scenes. Write the action or the fact, not the reasons; a confirmation says what is lost and "This can't be undone", nothing more. Tutorials and long explanations belong in a help screen, never in HUDs, buttons or sheets. Shorten every locale together.
+
 **Tweens, timers, coroutines**
 - Create tweens on the node they animate (`node.create_tween()`), so freeing the node kills the tween. Lambdas in callbacks must not capture nodes that can be freed first.
 - A Timer must be in the tree before `start()`; start loops from `_ready()`, not from a setup call made before `add_child()`.
