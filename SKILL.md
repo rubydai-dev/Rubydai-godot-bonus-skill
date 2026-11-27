@@ -59,6 +59,7 @@ Templates (copy into the project, adapt names):
 - No `export_presets.cfg` means the Export dialog shows "No presets found": create the preset (package/bundle ID, and the team ID for iOS) before telling the user how to deploy; reload the project if the editor was open.
 - Export from the CLI and install with `adb` (Android) or `xcrun devicectl` (iOS, on a Mac) to prove the build works before handing it over (`references/android-export.md`, `references/ios-export.md`).
 - A game with ads asks App Tracking Transparency at the first launch, about a second after it's on screen and in front (asked during startup, iOS silently drops the prompt; asked later, after a tutorial or the first ad, App Review never sees it and rejects the app). Ads can still be offered later (`references/ios-export.md` §4.1).
+- Ad units are chosen by `OS.is_debug_build()` (debug = Google test units, release = real), never by a flag to flip by hand. Releases come only from `--export-release` (or the dialog with "Export With Debug" off), through one script that exports and then fails on a test or missing App ID / ad unit (`references/ios-export.md` §4.2). AdMob "Test devices" on iOS work only after ATT was allowed (they match by IDFA).
 
 **Where to test (no iOS Simulator, no emulator for UI work)**
 - Never use or build anything for the iOS Simulator for a Godot game: the official template's simulator slice is x86_64-only, native plugins are device-only, and a self-built simulator engine runs OpenGL ES on the CPU (minutes per frame in 3D). The owner considers it over-engineering.

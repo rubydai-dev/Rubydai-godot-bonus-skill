@@ -97,12 +97,37 @@ On iOS, `user://` is the app's `Documents/` folder. To read the app's `print()` 
 
 **Testing:** there's no ATT on the desktop; replace the plugin with a fake node that has `request_tracking_authorization()` / `initialize()`. Check: in the background it hasn't asked; right after opening it hasn't asked yet; after enough time in the foreground it asks. On a device: delete the app, reinstall, open it: the dialog must appear within the first few seconds, even over a welcome screen or tutorial.
 
+### 4.2 Never ship Google's test ads: pick units by build type, check every release export
+
+A build with Google's test units uploads, passes App Review and shows ads, but earns nothing; nothing warns you. Make the right IDs automatic, then check them on every release export.
+
+- **Choose ad units with `OS.is_debug_build()`**, never with a constant or setting someone has to flip before exporting: `admob.is_real = REAL_UNIT_ID != "" and not OS.is_debug_build()`. Debug exports (and the editor) then always get test ads, and release exports always get the real ones.
+- **So a release must be a release export.** In the Export dialog, "Export With Debug" must be **off**. From the CLI, use `godot --headless --export-release "iOS" <path>`, never `--export-debug`. A debug export archived and uploaded plays test ads in the App Store.
+- **The App ID comes from the plugin's export config**, not from GDScript. For godot-admob it's `addons/AdmobPlugin/ios_export.cfg`: `is_real=true` writes the `[Release]` App ID into every export, debug ones included. Google's test App ID (`ca-app-pub-3940256099942544~…`) there makes every ad request fail or serve test ads.
+- **Release export script:** put the export and the checks in one script (e.g. `tools/export_ios_release.sh`), and archive only what it produced:
+
+  ```sh
+  set -eu
+  godot --headless --export-release "iOS" build/ios/Game.xcodeproj
+  plist=$(ls build/ios/*/*-Info.plist | head -1)
+  app_id=$(/usr/libexec/PlistBuddy -c 'Print :GADApplicationIdentifier' "$plist")
+  case "$app_id" in ca-app-pub-3940256099942544*|"") echo "error: test or missing AdMob App ID: $app_id"; exit 1 ;; esac
+  # The real unit constant must be a real ID (16-digit publisher, not Google's 3940256099942544).
+  grep -Eq 'REAL_UNIT_ID := "ca-app-pub-[0-9]{16}/[0-9]+"' scripts/ads.gd || { echo "error: real ad unit ID missing"; exit 1; }
+  grep -q 'ca-app-pub-3940256099942544' scripts/ads.gd && { echo "error: test unit in scripts/ads.gd (move test IDs into the plugin, or check by name)"; exit 1; } || true
+  echo "AdMob: release export uses App ID $app_id"
+  ```
+
+  Adapt the file names and the constant name to the project; keep the export and the checks in the same script, so a release can't skip them. The exported Xcode project is regenerated on each export, so an Xcode build phase added by hand would be lost.
+- **Prove it on the device once per release:** have the ads code print one line at start-up, e.g. `print("Ads: ", "REAL units" if admob.is_real else "TEST units")`, and read it with `xcrun devicectl device process launch --console …` (§4). A real ad shows no "Test Ad" label. Don't tap real ads on your own phone unless the phone is in AdMob → Settings → Test devices **and** ATT was allowed (the match is by IDFA; with tracking denied the device gets real ads, with no "Test mode" label).
+
 ---
 
 ## 5. Minimum on-device checklist
 
 - [ ] The app opens without crashing; the first screen isn't covered by the notch / Dynamic Island / home bar.
 - [ ] Apps with ads: delete the app, reinstall, open it for the first time: the ATT dialog appears within the first few seconds (§4.1).
+- [ ] Apps with ads: the build to upload came from the release export script (§4.2), and the device log says "REAL units".
 - [ ] Every list swipes, even when the swipe starts on a button (`touch-input.md`).
 - [ ] Tapping a button that opens a sheet: the sheet doesn't close itself; tapping the backdrop closes it.
 - [ ] Buttons are big enough (about 44 pt or more); no mis-taps when swiping.

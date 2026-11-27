@@ -60,6 +60,7 @@ adb logcat -s godot                           # the game's print() output and er
 - The Play Store wants an **AAB**, not an APK: turn on **Use Gradle Build** and set the export format to AAB, then `godot --headless --path . --export-release "Android" build/<game>.aab`.
 - Enroll in **Play App Signing**: Google keeps the real signing key, and a lost upload key can be reset instead of losing the app.
 - Bump `version/code` before every upload; the Play Console rejects a code it has seen.
+- **Ads:** the same rule as iOS (`ios-export.md` §4.2): units chosen by `OS.is_debug_build()`, releases only from `--export-release`, and the release export script fails on Google's test publisher `ca-app-pub-3940256099942544` in the App ID (the plugin's Android export settings, written to the manifest's `com.google.android.gms.ads.APPLICATION_ID`) or in the real unit constant. Read the start-up "Ads: REAL units" line with `adb logcat -s godot` on the release build. Android test devices match by the advertising ID shown in the log (`Use RequestConfiguration.Builder().setTestDeviceIds…`).
 
 ---
 
